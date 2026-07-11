@@ -50,5 +50,5 @@ class WebhookLog(Base):
     status: Mapped[str] = mapped_column(String, nullable=False, default="PENDING") # PENDING, SUCCESS, FAILED
     
     http_status_code: Mapped[int] = mapped_column(Integer, nullable=True)
-    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

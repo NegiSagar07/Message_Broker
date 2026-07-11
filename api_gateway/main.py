@@ -33,6 +33,18 @@ async def lifespan(app: FastAPI):
                 subscribed_events=["payment.success"]
             ))
             await db.commit()
+
+        # Inject the failing customer for retry testing
+        result_fail = await db.execute(select(Tenant).where(Tenant.id == "ten_fail"))
+        if not result_fail.scalars().first():
+            print("Injecting dummy tenant 'ten_fail'...")
+            db.add(Tenant(id="ten_fail", name="Failing Customer"))
+            db.add(Endpoint(
+                tenant_id="ten_fail",
+                target_url="https://httpbin.org/status/500",  # <--- GUARANTEES A 500 ERROR
+                subscribed_events=["payment.failed"]
+            ))
+            await db.commit()
     print("Database ready.")
 
     # ---------------------------------------------------------
