@@ -2,17 +2,18 @@
 import asyncio
 import aio_pika
 import httpx
+from shared.security import generate_hmac_signature
 
 from shared.schemas import DispatchMessage
-
-RABBITMQ_URL = "amqp://guest:guest@localhost:5672/"
+from shared.settings import RABBITMQ_URL
+from shared.rabbitmq import connect_rabbitmq
 MAX_RETRIES = 3
 BASE_DELAY_SEC = 5
 
 async def main():
     print("Starting Advanced Dispatch Worker (Exponential Backoff enabled)...")
     
-    connection = await aio_pika.connect_robust(RABBITMQ_URL)
+    connection = await connect_rabbitmq(RABBITMQ_URL)
     
     async with connection:
         channel = await connection.channel()
@@ -29,10 +30,19 @@ async def main():
                     dispatch_data = DispatchMessage.model_validate_json(message.body.decode())
                     print(f"\n[*] Dispatching: {dispatch_data.dispatch_id} | Attempt: {dispatch_data.retry_count + 1}")
                     
+                    signature = generate_hmac_signature(
+                        secret_key=dispatch_data.hmac_secret_key,
+                        payload=dispatch_data.payload
+                    )
+
+                    print(f"[*] Generated HMAC Signature: {signature[:15]}...")
+
+                    # 2. Inject it into the HTTP headers
                     async with httpx.AsyncClient() as client:
                         response = await client.post(
                             dispatch_data.target_url,
                             json=dispatch_data.payload,
+                            headers={"X-Webhook-Signature": signature}, # <--- [NEW] Stamp the envelope
                             timeout=10.0
                         )
                         # This automatically triggers the exception block if the status is 4xx or 5xx

@@ -1,8 +1,6 @@
 # shared/database.py
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-
-# Notice we changed the protocol from postgresql:// to postgresql+asyncpg://
-DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/webhook_db"
+from shared.settings import DATABASE_URL
 
 # Create the Async Engine
 engine = create_async_engine(DATABASE_URL, echo=False)

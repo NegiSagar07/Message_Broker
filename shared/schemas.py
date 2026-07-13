@@ -35,3 +35,4 @@ class DispatchMessage(EventMessage):
     """The 'Fat' JSON moving from Router Worker -> dispatch_bus."""
     dispatch_id: str = Field(default_factory=generate_disp_id)
     target_url: str = Field(..., description="The physical URL to hit")
+    hmac_secret_key: str = Field(..., description="The secret key for signing the payload")

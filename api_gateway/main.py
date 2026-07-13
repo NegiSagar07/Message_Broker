@@ -3,13 +3,11 @@ from fastapi import FastAPI, Request, status
 from contextlib import asynccontextmanager
 import aio_pika
 from sqlalchemy import select
-
-# Import our data contracts and database models
 from shared.schemas import EventCreate, EventMessage
 from shared.database import engine, AsyncSessionLocal
 from shared.models import Base, Tenant, Endpoint
-
-RABBITMQ_URL = "amqp://guest:guest@localhost:5672/"
+from shared.settings import RABBITMQ_URL
+from shared.rabbitmq import connect_rabbitmq
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -51,7 +49,7 @@ async def lifespan(app: FastAPI):
     # 2. RABBITMQ INITIALIZATION
     # ---------------------------------------------------------
     print("Connecting to RabbitMQ...")
-    connection = await aio_pika.connect_robust(RABBITMQ_URL)
+    connection = await connect_rabbitmq(RABBITMQ_URL)
     app.state.amqp_connection = connection
     
     # Let the server run

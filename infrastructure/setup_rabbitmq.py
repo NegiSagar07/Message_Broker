@@ -1,13 +1,17 @@
 # infrastructure/setup_rabbitmq.py
 import asyncio
 import aio_pika
-
-RABBITMQ_URL = "amqp://guest:guest@localhost:5672/"
+from shared.settings import (
+    RABBITMQ_URL,
+    RETRY_QUEUE_1M_TTL_MS,
+    RETRY_QUEUE_5M_TTL_MS,
+)
+from shared.rabbitmq import connect_rabbitmq
 
 async def main():
     print("Connecting to RabbitMQ to provision infrastructure...")
     
-    connection = await aio_pika.connect_robust(RABBITMQ_URL)
+    connection = await connect_rabbitmq(RABBITMQ_URL)
 
     async with connection:
         channel = await connection.channel()
@@ -36,7 +40,7 @@ async def main():
             name='delay_1m_queue',
             durable=True,
             arguments={
-                "x-message-ttl": 60000,                         
+                "x-message-ttl": RETRY_QUEUE_1M_TTL_MS,
                 "x-dead-letter-exchange": "dispatch_bus",       
                 "x-dead-letter-routing-key": "dispatch.execute" 
             }
@@ -47,7 +51,7 @@ async def main():
             name="delay_5m_queue",
             durable=True,
             arguments={
-                "x-message-ttl": 300000,                        
+                "x-message-ttl": RETRY_QUEUE_5M_TTL_MS,
                 "x-dead-letter-exchange": "dispatch_bus",
                 "x-dead-letter-routing-key": "dispatch.execute"
             }
