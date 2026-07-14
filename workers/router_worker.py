@@ -19,8 +19,12 @@ async def main():
         channel = await connection.channel()
         await channel.set_qos(prefetch_count=10)
         
-        queue = await channel.get_queue("router_queue")
-        dispatch_exchange = await channel.get_exchange("dispatch_bus")
+        queue = await channel.declare_queue("router_queue", durable=True)
+        dispatch_exchange = await channel.declare_exchange(
+            "dispatch_bus", 
+            type=aio_pika.ExchangeType.DIRECT, 
+            durable=True
+        )
 
         async def process_message(message: aio_pika.IncomingMessage):
             async with message.process(ignore_processed=True):

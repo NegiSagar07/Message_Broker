@@ -8,6 +8,8 @@ from shared.database import engine, AsyncSessionLocal
 from shared.models import Base, Tenant, Endpoint
 from shared.settings import RABBITMQ_URL
 from shared.rabbitmq import connect_rabbitmq
+from infrastructure.setup_rabbitmq import main as setup_rabbitmq_topology
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -52,6 +54,9 @@ async def lifespan(app: FastAPI):
     connection = await connect_rabbitmq(RABBITMQ_URL)
     app.state.amqp_connection = connection
     
+    print("Provisioning RabbitMQ Topology...")
+    await setup_rabbitmq_topology()
+
     # Let the server run
     yield 
     
@@ -74,7 +79,11 @@ async def create_event(event: EventCreate, request: Request):
     
     connection = request.app.state.amqp_connection
     channel = await connection.channel()
-    exchange = await channel.get_exchange("raw_event_bus")
+    exchange = await channel.declare_exchange(
+        "raw_event_bus", 
+        type=aio_pika.ExchangeType.TOPIC, 
+        durable=True
+    )
     
     amqp_message = aio_pika.Message(
         body=internal_message.model_dump_json().encode(),

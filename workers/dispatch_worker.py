@@ -20,9 +20,17 @@ async def main():
         await channel.set_qos(prefetch_count=10)
         
         # We need BOTH the primary queue (to pull from) and the delay exchange (to send failures to)
-        queue = await channel.get_queue("primary_dispatch_queue")
-        delay_exchange = await channel.get_exchange("delay_bus")
-        dlx_exchange = await channel.get_exchange("dlx_bus")
+        queue = await channel.declare_queue("primary_dispatch_queue", durable=True)
+        delay_exchange = await channel.declare_exchange(
+            "delay_bus", 
+            type=aio_pika.ExchangeType.DIRECT, 
+            durable=True
+        )
+        dlx_exchange = await channel.declare_exchange(
+            "dlx_bus", 
+            type=aio_pika.ExchangeType.DIRECT, 
+            durable=True
+        )
 
         async def process_message(message: aio_pika.IncomingMessage):
             async with message.process(ignore_processed=True):
